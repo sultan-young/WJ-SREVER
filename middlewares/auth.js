@@ -1,27 +1,22 @@
 import jwt from 'jsonwebtoken';
+import Admin from '../models/Admin.js';
+import Supplier from '../models/Supplier.js';
 import AppError from '../utils/appError.js';
 
 export const protect = (roles) => async (req, res, next) => {
   try {
-    // 1) 获取token
+    // 1. 获取token
     let token;
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith('Bearer')
-    ) {
+    if (req.headers.authorization?.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
     }
 
-    if (!token) {
-      return next(
-        new AppError('You are not logged in! Please log in to get access.', 401)
-      );
-    }
+    if (!token) throw new AppError('请先登录系统', 401);
 
-    // 2) 验证token
+    // 2. 验证token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 3) 检查用户是否存在
+    // 3. 获取用户
     let currentUser;
     if (decoded.role === 'admin') {
       currentUser = await Admin.findById(decoded.id);
@@ -29,18 +24,14 @@ export const protect = (roles) => async (req, res, next) => {
       currentUser = await Supplier.findById(decoded.id);
     }
 
-    if (!currentUser) {
-      return next(new AppError('The user no longer exists.', 401));
-    }
+    if (!currentUser) throw new AppError('用户不存在', 401);
 
-    // 4) 检查权限
+    // 4. 验证权限
     if (!roles.includes(decoded.role)) {
-      return next(
-        new AppError('You do not have permission to perform this action', 403)
-      );
+      throw new AppError('无权进行此操作', 403);
     }
 
-    // 5) 附加用户到请求对象
+    // 5. 附加用户信息
     req.user = currentUser;
     next();
   } catch (err) {

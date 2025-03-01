@@ -17,7 +17,7 @@ const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image')) {
     cb(null, true);
   } else {
-    cb(new AppError('Only image files are allowed!', 400), false);
+    cb(new AppError('仅支持图片文件上传', 400), false);
   }
 };
 

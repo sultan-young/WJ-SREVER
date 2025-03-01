@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   createProduct,
-  getAllProducts,
+  getProducts,
   updateProduct,
   deleteProduct
 } from '../controllers/productController.js';
@@ -12,9 +12,9 @@ const router = express.Router();
 
 router
   .route('/')
-  .get(protect(['admin', 'supplier']), getAllProducts)
+  .get(protect(['admin', 'supplier']), getProducts)
   .post(
-    protect(['admin']),
+    protect(['admin', 'supplier']),
     upload.array('images'),
     createProduct
   );
@@ -26,6 +26,9 @@ router
     upload.array('images'),
     updateProduct
   )
-  .delete(protect(['admin']), deleteProduct);
+  .delete(
+    protect(['admin']),
+    deleteProduct
+  );
 
 export default router;

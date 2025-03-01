@@ -1,10 +1,10 @@
 import Product from '../models/Product.js';
-import AppError from '../utils/appError.js';
 import APIFeatures from '../utils/apiFeatures.js';
+import AppError from '../utils/appError.js';
 
 export const createProduct = async (req, res, next) => {
   try {
-    // 自动关联供应商（如果是供应商登录）
+    // 自动关联供应商（供应商用户）
     if (req.user.role === 'supplier') {
       req.body.suppliers = [req.user.id];
     }
@@ -22,14 +22,13 @@ export const createProduct = async (req, res, next) => {
 
 export const getProducts = async (req, res, next) => {
   try {
-    // 1. 构建查询
     const features = new APIFeatures(Product.find(), req.query)
       .filter()
       .sort()
       .limitFields()
       .paginate();
 
-    // 2. 如果是供应商，只能查看自己的商品
+    // 供应商只能查看自己的商品
     if (req.user.role === 'supplier') {
       features.query = features.query.find({ suppliers: req.user.id });
     }
@@ -46,12 +45,16 @@ export const getProducts = async (req, res, next) => {
   }
 };
 
+
 export const updateProduct = async (req, res, next) => {
   try {
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true, runValidators: true }
+      {
+        new: true,
+        runValidators: true
+      }
     );
 
     if (!product) {
