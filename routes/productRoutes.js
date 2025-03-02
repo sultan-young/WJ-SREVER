@@ -1,34 +1,40 @@
-import express from 'express';
+import express from "express";
 import {
   createProduct,
   getProducts,
   updateProduct,
-  deleteProduct
-} from '../controllers/productController.js';
-import { protect } from '../middlewares/auth.js';
-import { upload } from '../config/storage.js';
+  deleteProduct,
+  getUploadProductImageSign,
+  deleteProductImage,
+} from "../controllers/productController.js";
+import { protect } from "../middlewares/auth.js";
+import { upload } from "../config/storage.js";
+import { ROLE } from "../constant/role.js";
 
 const router = express.Router();
 
 router
-  .route('/')
-  .get(protect(['admin', 'supplier']), getProducts)
+  .route("/list")
+  .post(protect([ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.SUPPLIER]), getProducts);
+
+router
+  .route("create")
   .post(
-    protect(['admin', 'supplier']),
-    upload.array('images'),
+    protect([ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.SUPPLIER]),
+    upload.array("images"),
     createProduct
   );
 
 router
-  .route('/:id')
+  .route("/:id")
   .patch(
-    protect(['admin']),
-    upload.array('images'),
+    protect([ROLE.SUPER_ADMIN, ROLE.ADMIN]),
+    upload.array("images"),
     updateProduct
   )
-  .delete(
-    protect(['admin']),
-    deleteProduct
-  );
+  .delete(protect([ROLE.SUPER_ADMIN, ROLE.ADMIN]), deleteProduct);
+
+router.route("/getUploadImageSign").post(getUploadProductImageSign);
+router.route("/deleteUploadImage").post(deleteProductImage);
 
 export default router;

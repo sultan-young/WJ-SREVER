@@ -21,6 +21,7 @@ app.use('/uploads', express.static('public/uploads'));
 // 路由
 app.use('/api/v1/products', productRouter);
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/supplier', supplierRouter);
 
 // 404处理
 app.all('*', (req, res, next) => {

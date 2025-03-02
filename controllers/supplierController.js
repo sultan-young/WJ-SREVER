@@ -1,10 +1,9 @@
 import Supplier from "../models/Supplier.js";
 import AppError from "../utils/appError.js";
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 
 export const createSupplier = async (req, res, next) => {
   try {
-    console.log(req.body)
     const newSupplier = await Supplier.create(req.body);
     res.status(201).json({
       status: "success",
@@ -15,7 +14,23 @@ export const createSupplier = async (req, res, next) => {
   }
 };
 
-export const getSupplierProducts = async (req, res, next) => {
+export const getSupplierList = async (req, res, next) => {
+  const supplierList = await Supplier.find({}, {
+    __v: 0
+  });
+
+  res.status(200).json({
+    status: "success",
+    success: true,
+    data: supplierList,
+  });
+  try {
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getSupplierProductList = async (req, res, next) => {
   try {
     const products = await Product.find({ suppliers: req.user.id });
     res.status(200).json({
@@ -31,11 +46,9 @@ export const getSupplierProducts = async (req, res, next) => {
 export const supplierLogin = async (req, res, next) => {
   try {
     const { supplierId } = req.body;
-    console.log(supplierId, 'supplierId')
 
     let user;
     user = await Supplier.findOne({ supplierId });
-    console.log(user, 'user')
 
     if (!user) {
       return next(new AppError("身份验证失败", 401));
@@ -44,18 +57,17 @@ export const supplierLogin = async (req, res, next) => {
     const token = jwt.sign({ id: supplierId }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRES_IN,
     });
-    console.log(token)
 
     res.status(200).json({
       status: "success",
       data: {
         token,
         userInfo: {
-            id: user._id,
-            email: "1234",
-            address: "123123",
-            phone: "123123",
-        }
+          id: user._id,
+          email: "1234",
+          address: "123123",
+          phone: "123123",
+        },
       },
     });
   } catch (err) {

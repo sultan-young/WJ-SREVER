@@ -1,11 +1,12 @@
 import express from 'express';
 import { protect } from '../middlewares/auth.js';
-import { getSupplierProducts } from '../controllers/supplierController.js';
+import { getSupplierProductList, getSupplierList } from '../controllers/supplierController.js';
 
 const router = express.Router();
 
 // router.use(protect(['supplier']));
 
-router.get('/products', getSupplierProducts);
+router.post('/getSupplierList', getSupplierList);
+router.post('/product/list', getSupplierProductList);
 
 export default router;

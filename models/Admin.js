@@ -5,13 +5,24 @@ const adminSchema = new mongoose.Schema({
   username: {
     type: String,
     required: [true, '请输入管理员账号'],
-    unique: true
+    unique: true,
   },
   password: {
     type: String,
     required: [true, '请输入密码'],
-    minlength: 8,
-    select: false
+    minlength: 6,
+  },
+  name: {
+    type: String,
+    required: [true, '请输入管理员姓名'],
+  },
+  phone: {
+    type: String,
+    required: [true, '请输入管理员联系方式'],
+  },
+  role: {
+    type: Number,
+    required: [true, '未分配权限'],
   }
 });
 
