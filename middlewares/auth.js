@@ -11,21 +11,24 @@ export const protect = (roles) => async (req, res, next) => {
     if (req.headers.authorization?.startsWith("Bearer")) {
       token = req.headers.authorization.split(" ")[1];
     }
+    
 
     if (!token) throw new AppError("请先登录系统", 401);
 
     // 2. 验证token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // console.log(decoded, 'decoded')
 
     // 3. 获取用户
     let currentUser;
-    if ([ROLE.Admin, ROLE.SUPER_ADMIN].includes(decoded.role)) {
+    if ([ROLE.ADMIN, ROLE.SUPER_ADMIN].includes(decoded.role)) {
       currentUser = await Admin.findById(decoded.id);
     }
 
     if (decoded.role === ROLE.SUPPLIER) {
       currentUser = await Supplier.findById(decoded.id);
     }
+    req.userInfo = currentUser;
 
     if (!currentUser) throw new AppError("用户不存在", 401);
 

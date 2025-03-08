@@ -7,8 +7,10 @@ import adminRouter from './routes/adminRoutes.js';
 import supplierRouter from './routes/supplierRoutes.js';
 import AppError from './utils/appError.js';
 import globalErrorHandler from './controllers/errorController.js';
+import { responseFormatter } from './middlewares/responseFormatter.js';
 
 const app = express();
+app.use(responseFormatter)
 
 // 中间件
 app.use(cors());

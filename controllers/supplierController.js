@@ -1,12 +1,17 @@
+import { ROLE } from "../constant/role.js";
 import Supplier from "../models/Supplier.js";
 import AppError from "../utils/appError.js";
 import jwt from "jsonwebtoken";
 
 export const createSupplier = async (req, res, next) => {
   try {
-    const newSupplier = await Supplier.create(req.body);
+    const newSupplier = await Supplier.create({
+      ...req.body,
+      role: ROLE.SUPPLIER,
+    });
     res.status(201).json({
       status: "success",
+      success: true,
       data: newSupplier,
     });
   } catch (err) {
@@ -15,16 +20,14 @@ export const createSupplier = async (req, res, next) => {
 };
 
 export const getSupplierList = async (req, res, next) => {
-  const supplierList = await Supplier.find({}, {
-    __v: 0
-  });
-
-  res.status(200).json({
-    status: "success",
-    success: true,
-    data: supplierList,
-  });
   try {
+    const supplierList = await Supplier.find(
+      {},
+      {
+        __v: 0,
+      }
+    );
+    return res.success(supplierList);
   } catch (err) {
     next(err);
   }
@@ -33,11 +36,7 @@ export const getSupplierList = async (req, res, next) => {
 export const getSupplierProductList = async (req, res, next) => {
   try {
     const products = await Product.find({ suppliers: req.user.id });
-    res.status(200).json({
-      status: "success",
-      results: products.length,
-      data: products,
-    });
+    return res.success(products);
   } catch (err) {
     next(err);
   }
@@ -54,20 +53,22 @@ export const supplierLogin = async (req, res, next) => {
       return next(new AppError("身份验证失败", 401));
     }
 
-    const token = jwt.sign({ id: supplierId }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN,
-    });
+    const token = jwt.sign(
+      { supplierId: supplierId, role: user.role, id: user._id },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+      }
+    );
 
-    res.status(200).json({
-      status: "success",
-      data: {
-        token,
-        userInfo: {
-          id: user._id,
-          email: "1234",
-          address: "123123",
-          phone: "123123",
-        },
+    // TODO:
+    return res.success({
+      token,
+      userInfo: {
+        id: user._id,
+        email: "1234",
+        address: "123123",
+        phone: "123123",
       },
     });
   } catch (err) {

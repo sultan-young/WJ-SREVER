@@ -6,6 +6,7 @@ import {
   deleteProduct,
   getUploadProductImageSign,
   deleteProductImage,
+  searchProducts,
 } from "../controllers/productController.js";
 import { protect } from "../middlewares/auth.js";
 import { upload } from "../config/storage.js";
@@ -18,21 +19,32 @@ router
   .post(protect([ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.SUPPLIER]), getProducts);
 
 router
-  .route("create")
+  .route("/search")
+  .post(protect([ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.SUPPLIER]), searchProducts);
+
+router
+  .route("/create")
   .post(
-    protect([ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.SUPPLIER]),
+    protect([ROLE.SUPER_ADMIN, ROLE.ADMIN]),
     upload.array("images"),
     createProduct
   );
 
 router
-  .route("/:id")
-  .patch(
+  .route("/update")
+  .post(
     protect([ROLE.SUPER_ADMIN, ROLE.ADMIN]),
     upload.array("images"),
     updateProduct
-  )
-  .delete(protect([ROLE.SUPER_ADMIN, ROLE.ADMIN]), deleteProduct);
+  );
+
+router
+  .route("/delete")
+  .post(
+    protect([ROLE.SUPER_ADMIN, ROLE.ADMIN]),
+    upload.array("images"),
+    deleteProduct
+  );
 
 router.route("/getUploadImageSign").post(getUploadProductImageSign);
 router.route("/deleteUploadImage").post(deleteProductImage);
