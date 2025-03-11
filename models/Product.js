@@ -29,6 +29,15 @@ const productSchema = new mongoose.Schema(
       required: [true, "SKU不能为空"],
       unique: true,
     },
+    shelf: {
+      type: String,
+      required: [true, "所属货架不能为空"],
+    },
+    // 商品当前的编号，用于生成sku
+    index: {
+      type: String,
+      required: [true, ""],
+    },
     suppliers: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -61,6 +70,10 @@ const productSchema = new mongoose.Schema(
       min: [0, "运费不能为负数"],
     },
     tags: [String],
+    status: {
+      type: Number, // 0为正常状态, 1为删除
+      require: [true]
+    },
     notes: String,
     createdAt: {
       type: Date,

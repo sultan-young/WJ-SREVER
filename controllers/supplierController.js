@@ -61,14 +61,13 @@ export const supplierLogin = async (req, res, next) => {
       }
     );
 
-    // TODO:
     return res.success({
       token,
       userInfo: {
         id: user._id,
-        email: "1234",
-        address: "123123",
-        phone: "123123",
+        email: user.email,
+        address: user.address,
+        phone: user.phone,
       },
     });
   } catch (err) {

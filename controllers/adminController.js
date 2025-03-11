@@ -9,11 +9,7 @@ export const createAdmin = async (req, res, next) => {
       ...req.body,
       role: ROLE.ADMIN,
     });
-    res.status(201).json({
-      status: "success",
-      success: true,
-      data: newAdmin,
-    });
+    res.status(200).json(newAdmin);
   } catch (err) {
     next(err);
   }
@@ -52,7 +48,11 @@ export const loginAdmin = async (req, res, next) => {
 
     return res.success({
       token,
-      userInfo: {},
+      userInfo: {
+        name: user.username,
+        phone: user.phone,
+        role: user.role
+      },
     });
   } catch (err) {
     next(err);
