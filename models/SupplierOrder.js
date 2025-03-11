@@ -1,19 +1,17 @@
 import mongoose, { Schema } from "mongoose";
 
-const productDetailSchema = new mongoose.Schema(
-  {
-    id: {
-      type: Schema.Types.ObjectId,
-      ref: "Product",
-      required: [true, "商品id不能"],
-    },
-    count: {
-      type: Number,
-      required: [true, "订购数量不能为空"],
-    },
-    note: String,
+const productDetailSchema = new mongoose.Schema({
+  id: {
+    type: Schema.Types.ObjectId,
+    ref: "Product",
+    required: [true, "商品id不能"],
   },
-);
+  count: {
+    type: Number,
+    required: [true, "订购数量不能为空"],
+  },
+  note: String,
+});
 
 const SupplierOrderSchema = new mongoose.Schema(
   {
@@ -69,7 +67,5 @@ const SupplierOrderSchema = new mongoose.Schema(
     },
   }
 );
-
-
 
 export default mongoose.model("SupplierOrder", SupplierOrderSchema);

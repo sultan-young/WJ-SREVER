@@ -22,7 +22,7 @@ const supplierSchema = new mongoose.Schema(
       required: [true, "供应商收货地址不能为空"],
     },
     phone: {
-      type: Number,
+      type: String,
     },
     role: {
       type: Number,
