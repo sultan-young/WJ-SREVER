@@ -34,17 +34,13 @@ export const createYwOrder = async (req, res, next) => {
     const result = exportToExcel(orderList);
 
 
-    res.status(201).json({
+    // TODO: 生成订单时候进行校验id，如果id已经存在，则跳过当前订单
+    // const newSupplier = await EtsyOrder.create(orderList);
+    res.status(200).json({
       status: "success",
       success: true,
+      data: result,
     });
-
-    // const newSupplier = await EtsyOrder.create(orderList);
-    // res.status(201).json({
-    //   status: "success",
-    //   success: true,
-    //   data: newSupplier,
-    // });
   } catch (err) {
     next(err);
   }

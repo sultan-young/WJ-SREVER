@@ -1,7 +1,7 @@
 import express from "express";
 import { protect } from "../middlewares/auth.js";
 import { ROLE } from "../constant/role.js";
-import { createYwOrder } from '../controllers/markOrder/markOrderController.js'
+import { createYwOrder } from '../controllers/makeOrder/makeOrderController.js'
 
 const router = express.Router();
 router

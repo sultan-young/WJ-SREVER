@@ -1,6 +1,6 @@
 export function exportToExcel(data) {
   // Create a CSV string from the data
-  const headers = [
+  const normalHeaders = [
     "订单号",
     "平台交易号",
     "交货仓",
@@ -27,24 +27,24 @@ export function exportToExcel(data) {
     "是否含电",
     "拣货单信息",
     "IOSS税号",
-    "中文品名1",
-    "英文品名1",
-    "单票数量1",
-    "重量1(g)",
-    "申报价值1",
-    "商品材质1",
-    "商品海关编码1",
-    "商品链接1",
-    "SKU1",
   ];
+
+  // 获取最长商品长度，动态生成表格表头
+  const maxProductLength = data.reduce((prev, current) => {
+    return Math.max(prev, current.products?.length)
+  }, 1)
+
+  for (let i = 1; i <= maxProductLength; i++) {
+    normalHeaders.push(...getTableHeader(i))
+  }
 
   const today = new Date();
   const dateStr = formatDateForOrderNumber(today);
   // Convert data to a worksheet
+
   const worksheetData = [
-    headers, // Header row
+    normalHeaders, // Header row
     ...data.map((item, index) => {
-      console.log(item.products)
       const orderNumber = `YW${dateStr}${String(index + 1).padStart(2, "0")}`;
 
       // b. Set warehouse and determine product name based on country
@@ -60,54 +60,52 @@ export function exportToExcel(data) {
 
       // o. Set picking list information
       // const pickingListInfo = `${item.product_identifier} - ${item.title}`;
-      
-      // 拣货信息
-      const pickingListInfo = item.products
-        .map(
-          (p) =>
-            `${p.product_identifier}*${p.quantity}`
-        )
-        .join("; ");
 
-      return [
-        orderNumber, // 订单号
-        "", // 平台交易号
-        warehouse, // 交货仓
-        productName, // 产品名称
-        item.name, // 收件人姓名
-        phoneNumber, // 收件人电话
-        item.email, // 收件人邮箱
-        "", // 收件人税号
-        "", // 收件人公司
-        countryInChinese, // 收件人国家
-        item.state, // 收件人省/州
-        item.city, // 收件人城市
-        item.zip, // 收件人邮编
-        item.first_line, // 收件人地址
-        item.second_line, // 收件人门牌号
-        "", // 销售平台
-        senderTaxInfo, // 发件人税号信息
-        "", // CSP
-        "1", // 包装尺寸【长】cm
-        "1", // 包装尺寸【宽】cm
-        "1", // 包装尺寸【高】cm
-        "", // 收款到账日期
-        "美元", // 币种类型
-        "否", // 是否含电
-        pickingListInfo, // 拣货单信息
-        "", // IOSS税号
-        "", // 中文品名1
-        "", // 英文品名1
-        "", // 单票数量1
-        "", // 重量1(g)
-        "", // 申报价值1
-        "", // 商品材质1
-        "", // 商品海关编码1
-        "", // 商品链接1
-        item.product_identifier, // SKU1
-      ];
+      // 拣货信息
+      let pickingListInfo = item.products
+        .map((p) => `${p.product_identifier} * ${p.quantity}`)
+        .join("; ");
+        
+        if (item.notes) {
+          pickingListInfo += `(${item.notes})`
+        }
+
+        const productTableBody = item.products.map(getTableBody).flat()
+        
+        const TableBody = [
+          orderNumber, // 订单号
+          "", // 平台交易号
+          warehouse, // 交货仓
+          productName, // 产品名称
+          item.name, // 收件人姓名
+          phoneNumber, // 收件人电话
+          item.email, // 收件人邮箱
+          "", // 收件人税号
+          "", // 收件人公司
+          countryInChinese, // 收件人国家
+          item.state, // 收件人省/州
+          item.city, // 收件人城市
+          item.zip, // 收件人邮编
+          item.first_line, // 收件人地址
+          item.second_line, // 收件人门牌号
+          "", // 销售平台
+          senderTaxInfo, // 发件人税号信息
+          "", // CSP
+          "1", // 包装尺寸【长】cm
+          "1", // 包装尺寸【宽】cm
+          "1", // 包装尺寸【高】cm
+          "", // 收款到账日期
+          "美元", // 币种类型
+          "否", // 是否含电
+          pickingListInfo, // 拣货单信息
+          "", // IOSS税号     
+          ...productTableBody   
+        ]
+
+      return TableBody;
     }),
   ];
+
   return worksheetData;
 }
 
@@ -173,3 +171,32 @@ function getSenderTaxInfo(country) {
       return "";
   }
 }
+
+
+const getTableHeader= (index) => {
+  return [
+    `中文品名${index}`,
+    `英文品名${index}`,
+    `单票数量${index}`,
+    `重量${index}(g)`,
+    `申报价值${index}`,
+    `商品材质${index}`,
+    `商品海关编码${index}`,
+    `商品链接${index}`,
+    `SKU${index}`,
+  ]
+};
+
+const getTableBody= (product) => {
+  return [
+    product.nameCn, //中文品名
+    product.nameEn, //英文品名
+    product.quantity, //单票数量
+    "20", //重量
+    product.declaredPrice, //申报价值
+    "", //商品材质
+    "", //商品海关编码
+    product.listingLink, //商品链接
+    product.product_identifier, //SKU
+  ]
+};
