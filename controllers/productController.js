@@ -12,6 +12,7 @@ export const createProduct = async (req, res, next) => {
   try {
     let productData = {
       ...req.body,
+      declaredPrice: req.body.salePriceUSD,
       status: 0,
     };
     // 自动关联供应商（供应商用户）
@@ -32,10 +33,13 @@ export const createProduct = async (req, res, next) => {
       productData.index = "0000";
     }
 
+
+    // TODO: 接口报错后仍创建了订单
     const newProduct = await Product.create(productData);
 
     return res.success(newProduct);
   } catch (err) {
+    console.log(err)
     next(err);
   }
 };
@@ -125,7 +129,7 @@ async function searchWithType0(content, { pageNo, pageSize }) {
     Product.find({
       $or: [
         { sku: { $regex: content, $options: "i" } }, // 'i' 表示忽略大小写
-        { nameCN: { $regex: content, $options: "i" } },
+        { nameCn: { $regex: content, $options: "i" } },
         ...(filterSupplierIds.length
           ? [{ suppliers: { $in: filterSupplierIds } }]
           : []),

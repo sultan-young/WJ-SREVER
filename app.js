@@ -3,7 +3,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import productRouter from './routes/productRoutes.js';
 import authRouter from './routes/authRoutes.js';
-import adminRouter from './routes/adminRoutes.js';
+import MarkOrderRouter from './routes/markOrder.js';
 import shelfRouter from './routes/shelfRoutes.js';
 import supplierRouter from './routes/supplierRoutes.js';
 import orderRouter from './routes/supplierOrderRoutes.js';
@@ -30,6 +30,7 @@ app.use('/api/v1/supplier', supplierRouter);
 app.use('/api/v1/shelf', shelfRouter);
 app.use('/api/v1/supplierOrder', orderRouter);
 app.use('/api/v1/proxy', ProxyRouter);
+app.use('/api/v1/markOrder', MarkOrderRouter);
 
 // 404处理
 app.all('*', (req, res, next) => {

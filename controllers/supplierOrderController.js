@@ -32,7 +32,7 @@ export const getOrderList = async (req, res, next) => {
 
     const conditions = [];
 
-    // 1. 处理订单 ID 精确查询
+    // 订单id精确查询
     if (orderId) {
       if (mongoose.Types.ObjectId.isValid(orderId)) {
         conditions.push({
@@ -43,14 +43,12 @@ export const getOrderList = async (req, res, next) => {
       }
     }
 
-    // 2. 处理供应商手机号模糊查询
+    // 供应商手机号模糊查询
     if (supplierPhone) {
-      const cleanedPhone = supplierPhone.replace(/\D/g, ""); // 移除非数字字符
+      const cleanedPhone = supplierPhone.replace(/\D/g, "");
       const phoneConditions = [];
-
       // 精确匹配条件
       phoneConditions.push({ "supplier.phone": cleanedPhone });
-
       // 尾号四位匹配条件（仅当清理后为4位时）
       if (cleanedPhone.length === 4) {
         phoneConditions.push({
@@ -59,12 +57,12 @@ export const getOrderList = async (req, res, next) => {
           },
         });
       }
-
       // 组合逻辑：精确匹配或尾号匹配
       conditions.push({ $or: phoneConditions });
     }
 
-    // 3. 处理供应商名称模糊查询
+
+     // 处理供应商名称模糊查询
     if (supplierName) {
       conditions.push({
         "supplier.name": { $regex: supplierName, $options: "i" },
@@ -74,7 +72,7 @@ export const getOrderList = async (req, res, next) => {
     // 构建聚合管道
     const pipeline = [];
 
-    // 优先过滤订单状态
+    // 1. 按订单状态筛选
     pipeline.push({
       $match: {
         status: orderStatus,
@@ -84,32 +82,77 @@ export const getOrderList = async (req, res, next) => {
     // 关联供应商信息
     pipeline.push({
       $lookup: {
-        from: "suppliers", // 关联的集合名（自动小写复数化）
+        from: "suppliers",
         localField: "supplierId",
         foreignField: "_id",
         as: "supplier",
       },
     });
 
-    // 展开关联的供应商数组（一对一关系）
+    // 展开供应商数组（因为每个订单只关联一个供应商）
     pipeline.push({ $unwind: "$supplier" });
 
-    // 动态添加查询条件
+    // 按查询条件筛选（如供应商名称、电话等）
     if (conditions.length > 0) {
       pipeline.push({
-        $match: { $or: conditions }, // 使用 $or 组合条件
+        $match: { $or: conditions },
       });
     }
 
-    // 执行查询
-    const orders = await SupplierOrder.aggregate(pipeline);
+    // 处理订单商品列表：展开、关联商品、重组
+    pipeline.push(
+      { $unwind: "$orderList" }, // 展开 orderList 数组
+      {
+        $lookup: {
+          from: "products", // 关联商品集合
+          localField: "orderList.id",
+          foreignField: "_id",
+          as: "productDetails",
+        },
+      },
+      { $unwind: "$productDetails" }, // 展开商品详情（一对一）
+      {
+        $addFields: {
+          "orderList.images": "$productDetails.images", // 将商品图片添加到订单项
+        },
+      },
+      {
+        $group: {
+          _id: "$_id", // 按订单 ID 重新分组
+          supplierId: { $first: "$supplierId" },
+          shippingDate: { $first: "$shippingDate" },
+          orderList: { $push: "$orderList" }, // 重组 orderList
+          note: { $first: "$note" },
+          status: { $first: "$status" },
+          createdAt: { $first: "$createdAt" },
+          supplier: { $first: "$supplier" }, // 保留供应商信息
+        },
+      }
+    );
 
+    // 6. 字段转换和清理
+    pipeline.push(
+      {
+        $addFields: {
+          id: { $toString: "$_id" }, // 将 _id 转换为字符串 id
+          "supplier.id": { $toString: "$supplier._id" }, // 转换供应商 ID
+        },
+      },
+      {
+        $project: {
+          _id: 0, // 排除 MongoDB 默认的 _id
+          "supplier._id": 0, // 排除供应商的 _id
+        },
+      }
+    );
+
+    // 执行聚合查询
+    const orders = await SupplierOrder.aggregate(pipeline);
     return res.success(orders);
   } catch (err) {
     next(err);
   }
 };
-
 export const updateOrder = async (req, res, next) => {
   try {
     const { id, supplierId, shippingDate, orderList = [], note } = req.body;
@@ -136,6 +179,8 @@ export const deleteOrder = async (req, res, next) => {
     const order = await SupplierOrder.findById(id);
     if (order) {
       await order.deleteOne();
+    } else {
+      return res.error("未找到该订单");
     }
     return res.success(true);
   } catch (err) {
@@ -178,7 +223,7 @@ export const updateOrderStatus = async (req, res, next) => {
     const order = await SupplierOrder.findById(id);
 
     if (!order) {
-      res.error('未查询到该订单')
+      res.error("未查询到该订单");
       return;
     }
 

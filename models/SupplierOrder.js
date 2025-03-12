@@ -1,17 +1,36 @@
 import mongoose, { Schema } from "mongoose";
 
-const productDetailSchema = new mongoose.Schema({
-  id: {
-    type: Schema.Types.ObjectId,
-    ref: "Product",
-    required: [true, "商品id不能"],
+const productDetailSchema = new mongoose.Schema(
+  {
+    id: {
+      type: Schema.Types.ObjectId,
+      ref: "Product",
+      required: [true, "商品id不能"],
+    },
+    count: {
+      type: Number,
+      required: [true, "订购数量不能为空"],
+    },
+    note: String,
   },
-  count: {
-    type: Number,
-    required: [true, "订购数量不能为空"],
-  },
-  note: String,
-});
+  {
+    _id: false, // 禁用自动生成 _id
+    // 关键配置：定义 JSON 序列化时的行为
+    toJSON: {
+      virtuals: true, // 启用虚拟字段（可选）
+      transform: (doc, ret) => {
+        delete ret.__v; // 可选：删除版本字段 __v
+        return ret;
+      },
+    },
+    toObject: {
+      transform: (doc, ret) => {
+        delete ret.__v;
+        return ret;
+      },
+    },
+  }
+);
 
 const SupplierOrderSchema = new mongoose.Schema(
   {
@@ -33,8 +52,8 @@ const SupplierOrderSchema = new mongoose.Schema(
       type: Number,
       required: true,
       enum: [
-        1, // 正常
-        2, // 在途
+        1, // 制作中
+        2, // 发货途中
         3, // 已完成
         4, // 已删除
       ],

@@ -50,31 +50,53 @@ const productSchema = new mongoose.Schema(
       required: [true, "库存不能为空"],
       min: [0, "库存不能为负数"],
     },
-    nameCN: {
+    nameCn: {
       type: String,
       required: [true, "中文名称不能为空"],
     },
-    nameEN: String,
+    nameEn: {
+      type: String,
+      required: [true, "英文名称不能为空"],
+    },
     images: {
       type: [ImageListSchema],
       required: [true, "至少有一张图片"],
     },
-    price: {
+    costPriceRMB: {
       type: Number,
-      required: [true, "价格不能为空"],
+      required: [true, "商品成本价格不能为空"],
       min: [0, "价格不能为负数"],
     },
-    shippingFee: {
+    salePriceUSD: {
       type: Number,
-      required: [true, "运费不能为空"],
+      required: [true, "平台销售价格不能为空"],
+      min: [0, "价格不能为负数"],
+    },
+    saleShipPriceUSD: {
+      type: Number,
+      required: [true, "商品收取的运费不能为空"],
+      min: [0, "价格不能为负数"],
+    },
+    shippingFeeRMB: {
+      type: Number,
+      required: [true, "国内运送到目的国运费不能为空"],
       min: [0, "运费不能为负数"],
     },
+    declaredPrice: {
+      type: Number,
+      required: [true, "商品申报价格不能为空"],
+      min: [0, "商品申报价格不能为空"],
+    },
+    listingLink: {
+      type: String,
+      required: [true, "商品链接不能为空"],
+    },
     tags: [String],
+    notes: String,
     status: {
       type: Number, // 0为正常状态, 1为删除
       require: [true]
     },
-    notes: String,
     createdAt: {
       type: Date,
       default: Date.now,
