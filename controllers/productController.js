@@ -8,38 +8,47 @@ import Supplier from "../models/Supplier.js";
 import { incrementStringNumber } from "../utils/number.js";
 
 export const createProduct = async (req, res, next) => {
-  const { shelf } = req.body;
+  const { shelf, hasVariant, variantSerial } = req.body;
   try {
-    let productData = {
+    let productDataPO = {
       ...req.body,
       declaredPrice: req.body.salePriceUSD,
       status: 0,
     };
     // 自动关联供应商（供应商用户）
     if (req.user.role === "supplier") {
-      productData.suppliers = [req.user.id];
+      productDataPO.suppliers = [req.user.id];
     }
 
-    const lastProduct = await Product.findOne()
+
+    // 找到同类产品的上个index
+    const lastProduct = await Product.findOne({
+      shelf
+    })
       .sort({ _id: -1 })
       .select("index");
 
+      // sku生成规则，同类产品进行累加
     if (lastProduct?.index) {
       const newIndex = incrementStringNumber(lastProduct.index);
-      productData.sku = `${shelf}_${newIndex}`;
-      productData.index = newIndex;
+      productDataPO.sku = `${shelf}-${newIndex}`;
+      productDataPO.index = newIndex;
     } else {
-      productData.sku = `${shelf}_0000`;
-      productData.index = "0000";
+      productDataPO.sku = `${shelf}-0000`;
+      productDataPO.index = "0000";
     }
 
+    // 如果商品有变体，则在sku编号最后追加变体的编号
+    if (hasVariant && variantSerial) {
+      productDataPO.sku += `-${variantSerial}`
+    }
 
     // TODO: 接口报错后仍创建了订单
-    const newProduct = await Product.create(productData);
+    const newProduct = await Product.create(productDataPO);
 
     return res.success(newProduct);
   } catch (err) {
-    console.log(err)
+    console.log(err);
     next(err);
   }
 };
@@ -86,7 +95,7 @@ export const searchProducts = async (req, res, next) => {
   };
 
   if (!content) {
-    req.body = {}
+    req.body = {};
     getProducts(req, res, next);
     return;
   }

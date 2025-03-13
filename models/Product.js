@@ -95,7 +95,15 @@ const productSchema = new mongoose.Schema(
     notes: String,
     status: {
       type: Number, // 0为正常状态, 1为删除
-      require: [true]
+      require: [true],
+    },
+    hasVariant: {
+      type: Number,
+      require: [true],
+      enum: [0, 1], // 0无变体，1有变体
+    },
+    variantSerial: {
+      type: String, // 变体的编号，会追加到sku最后
     },
     createdAt: {
       type: Date,
