@@ -1,14 +1,14 @@
 import md5 from "md5";
-import Product from "../models/Product.js";
-import APIFeatures from "../utils/apiFeatures.js";
-import AppError from "../utils/appError.js";
+import Product from "../../models/Product.js";
+import APIFeatures from "../../utils/apiFeatures.js";
+import AppError from "../../utils/appError.js";
 import axios from "axios";
-import { ROLE } from "../constant/role.js";
-import Supplier from "../models/Supplier.js";
-import { incrementStringNumber } from "../utils/number.js";
+import { ROLE } from "../../constant/role.js";
+import Supplier from "../../models/Supplier.js";
+import { incrementStringNumber } from "../../utils/number.js";
 
 export const createProduct = async (req, res, next) => {
-  const { shelf, hasVariant, variantSerial } = req.body;
+  const { category, hasVariant, variantSerial } = req.body;
   try {
     let productDataPO = {
       ...req.body,
@@ -23,7 +23,7 @@ export const createProduct = async (req, res, next) => {
 
     // 找到同类产品的上个index
     const lastProduct = await Product.findOne({
-      shelf
+      category
     })
       .sort({ _id: -1 })
       .select("index");
@@ -31,10 +31,10 @@ export const createProduct = async (req, res, next) => {
       // sku生成规则，同类产品进行累加
     if (lastProduct?.index) {
       const newIndex = incrementStringNumber(lastProduct.index);
-      productDataPO.sku = `${shelf}-${newIndex}`;
+      productDataPO.sku = `${category}-${newIndex}`;
       productDataPO.index = newIndex;
     } else {
-      productDataPO.sku = `${shelf}-0000`;
+      productDataPO.sku = `${category}-0000`;
       productDataPO.index = "0000";
     }
 

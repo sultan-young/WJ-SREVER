@@ -29,7 +29,7 @@ const productSchema = new mongoose.Schema(
       required: [true, "SKU不能为空"],
       unique: true,
     },
-    shelf: {
+    category: {
       type: String,
       required: [true, "所属货架不能为空"],
     },

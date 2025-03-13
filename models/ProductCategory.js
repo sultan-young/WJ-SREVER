@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 // 货架模型
-const ShelfSchema = new mongoose.Schema(
+const ProductCategorySchema = new mongoose.Schema(
   {
     label: {
       type: String,
@@ -39,4 +39,4 @@ const ShelfSchema = new mongoose.Schema(
   }
 );
 
-export default mongoose.model("Shelf", ShelfSchema);
+export default mongoose.model("product-category", ProductCategorySchema);

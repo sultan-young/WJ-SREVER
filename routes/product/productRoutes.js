@@ -7,10 +7,10 @@ import {
   getUploadProductImageSign,
   deleteProductImage,
   searchProducts,
-} from "../controllers/productController.js";
-import { protect } from "../middlewares/auth.js";
-import { upload } from "../config/storage.js";
-import { ROLE } from "../constant/role.js";
+} from "../../controllers/products/productController.js";
+import { protect } from "../../middlewares/auth.js";
+import { upload } from "../../config/storage.js";
+import { ROLE } from "../../constant/role.js";
 
 const router = express.Router();
 
