@@ -37,7 +37,7 @@ const sendErrorProd = (err, res) => {
     res.status(500).json({
       status: "error",
       success: false,
-      message: "系统发生错误，请稍后重试",
+      message: err.errmsg,
     });
   }
 };
@@ -55,7 +55,6 @@ export default (err, req, res, next) => {
     if (error.code === 11000) error = handleDuplicateFieldsDB(error);
     if (error.name === "ValidationError")
       error = handleValidationErrorDB(error);
-
     sendErrorProd(error, res);
   }
 };

@@ -9,13 +9,14 @@ router
   .post(protect([ROLE.SUPER_ADMIN, ROLE.ADMIN]), async (req, res) => {
     try {
       const { imageUrls } = req.body;
-      console.log(imageUrls, 11)
       if (!imageUrls || !Array.isArray(imageUrls)) {
         return res.error(400, "入参错误");
       }
+
+      const filterImageUrls = imageUrls.filter(item => item)
       // 并行请求所有图片（任一失败立即终止）
       const responses = await Promise.all(
-        imageUrls.map((url) =>
+        filterImageUrls.map((url) =>
           axios.get(url, {
             responseType: "arraybuffer",
             timeout: 5000, // 超时控制（可选）
@@ -26,7 +27,7 @@ router
       // 转换为 Base64 格式
       const imagesData = responses.map((response, index) => {
         const base64 = Buffer.from(response.data, "binary").toString("base64");
-        return [imageUrls[index], `data:${response.headers["content-type"]};base64,${base64}`]
+        return [filterImageUrls[index], `data:${response.headers["content-type"]};base64,${base64}`]
       });
 
       res.success(imagesData);

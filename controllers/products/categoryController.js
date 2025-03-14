@@ -7,7 +7,6 @@ export const getProductCategoryList = async (req, res, next) => {
     const features = new APIFeatures(ProductCategory.find());
 
     const ProductCategoryList = await features.query;
-    console.log(ProductCategoryList, 'ProductCategoryList')
 
     return res.success(ProductCategoryList);
   } catch (err) {

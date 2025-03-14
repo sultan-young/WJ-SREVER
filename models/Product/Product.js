@@ -62,10 +62,20 @@ const productSchema = new mongoose.Schema(
       type: [ImageListSchema],
       required: [true, "至少有一张图片"],
     },
-    costPriceRMB: {
+    costPriceRMB: { // 当只有一个价格时候取取去这个值
       type: Number,
       required: [true, "商品成本价格不能为空"],
       min: [0, "价格不能为负数"],
+      default: 0,
+    },
+    priceLinkSuppliers: {
+      type: Number,
+      enum: [0, 1], // 0不关联， 1关联
+      require: [true, '商品价格是否关联手工艺人'],
+      default: 0,
+    },
+    costSuppliersLinkPricesRMB: {
+      type: [Object], // {id: 手工艺人id，prices: 价格}
     },
     salePriceUSD: {
       type: Number,
@@ -109,6 +119,9 @@ const productSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    groupID: {
+      type: mongoose.Schema.Types.ObjectId,
+    }
   },
   {
     // 关键配置：定义 JSON 序列化时的行为

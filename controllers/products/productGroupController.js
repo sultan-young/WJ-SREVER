@@ -29,6 +29,7 @@ export const createProduct = async (req, res, next) => {
 
     // sku生成规则，同类产品进行累加
     if (lastProduct?.index) {
+      console.log(lastProduct?.index)
       let newIndex;
       if (hasVariant) {
         newIndex = lastProduct.index;

@@ -1,5 +1,5 @@
 import EtsyOrder from "../../models/EtsyOrder.js";
-import Product from "../../models/Product.js";
+import Product from "../../models/Product/Product.js";
 import { exportToExcel } from "./export.js";
 
 export const createYwOrder = async (req, res, next) => {

@@ -63,12 +63,31 @@ export function exportToExcel(data) {
 
       // 拣货信息
       let pickingListInfo = item.products
-        .map((p) => `${p.product_identifier} * ${p.quantity}`)
+        .map((p) => {
+          let info = `${p.product_identifier || 'null'} * ${p.quantity}`;
+          // 增加用户个性化信息
+          if (p.personalisation) {
+            info += `[CUSTOMER=>${p.personalisation}]; `
+          }
+          return info;
+        })
         .join("; ");
         
+        // 客服人员在无界系统手动增加的备注
         if (item.notes) {
-          pickingListInfo += `(${item.notes})`
+          pickingListInfo += `[KF=>${item.notes}]; `
         }
+
+        // 运营人员增加的备注
+        if (item.merchant_notes.length > 0) {
+          pickingListInfo += `[YY=>${item.merchant_notes.map((n) => `${n.note}`) .join("; ")}]; `;
+        }
+
+        // if (item.merchant_notes.length > 0) {
+        //   pickingListInfo += ` | 商家备注: ${item.merchant_notes
+        //     .map((n) => `${n.note} (订单ID: ${n.order_id})`)
+        //     .join("; ")}`;
+        // }
 
         const productTableBody = item.products.map(getTableBody).flat()
         
