@@ -6,9 +6,11 @@ import axios from "axios";
 import { ROLE } from "../../constant/role.js";
 import Supplier from "../../models/Supplier.js";
 import { incrementStringNumber } from "../../utils/number.js";
+import { enhanceProducts } from "../../services/Product/productEnhancer.js";
 
 export const createProduct = async (req, res, next) => {
-  const { category, hasVariant, variantSerial } = req.body;
+  const { category, hasVariant, variantSerial, children, isGroup } = req.body;
+
   try {
     let productDataPO = {
       ...req.body,
@@ -29,12 +31,7 @@ export const createProduct = async (req, res, next) => {
 
     // sku生成规则，同类产品进行累加
     if (lastProduct?.index) {
-      let newIndex;
-      if (hasVariant) {
-        newIndex = lastProduct.index;
-      } else {
-        newIndex = incrementStringNumber(lastProduct.index);
-      }
+      let newIndex = incrementStringNumber(lastProduct.index);
       productDataPO.sku = `${category}-${newIndex}`;
       productDataPO.index = newIndex;
     } else {
@@ -42,11 +39,10 @@ export const createProduct = async (req, res, next) => {
       productDataPO.index = "0000";
     }
 
-    // 如果商品有变体，则在sku编号最后追加变体的编号
-    if (hasVariant && variantSerial) {
-      productDataPO.sku += `-${variantSerial}`;
+    if (isGroup || children?.length) {
+      await Product.createWithGroup(productDataPO);
     }
-
+    
     // TODO: 接口报错后仍创建了订单
     const newProduct = await Product.create(productDataPO);
 
@@ -61,10 +57,16 @@ export const getProducts = async (req, res, next) => {
   try {
     const { queryParams = {}, pageNo, pageSize } = req.body;
     const { role, _id } = req.userInfo;
-    const features = new APIFeatures(Product.find(queryParams).sort({ _id: -1 }), {
-      pageNo,
-      pageSize,
-    })
+    const features = new APIFeatures(
+      Product.find({
+        ...queryParams,
+        isGroup: { $ne: true }
+      }).sort({ _id: -1 }),
+      {
+        pageNo,
+        pageSize,
+      }
+    )
       .filter()
       .sort()
       // .limitFields()
@@ -76,7 +78,8 @@ export const getProducts = async (req, res, next) => {
     }
 
     const products = await features.query;
-    return res.success(products);
+    const enhancedProducts = await enhanceProducts(products, Product)
+    return res.success(enhancedProducts);
   } catch (err) {
     next(err);
   }
@@ -119,7 +122,9 @@ export const searchProducts = async (req, res, next) => {
         break;
     }
 
-    return res.success(products);
+    const enhancedProducts = await enhanceProducts(products, Product)
+
+    return res.success(enhancedProducts);
   } catch (err) {
     next(err);
   }
@@ -219,9 +224,14 @@ export const deleteProductImage = async (req, res, next) => {
 };
 
 export const updateProduct = async (req, res, next) => {
-  const { id } = req.body;
+  const productData = {
+    ...req.body,
+  };
+  // 分类无法更改
+  delete productDataPO.category;
+  const { id } = productData;
   try {
-    const product = await Product.findByIdAndUpdate(id, req.body, {
+    const product = await Product.findByIdAndUpdate(id, productData, {
       new: true,
       runValidators: true,
     });

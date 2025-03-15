@@ -22,7 +22,6 @@ export const appendProductCategoryList = async (req, res, next) => {
       label,
       value,
     });
-    console.log(features, label, value, 111)
     return res.success(features);
   } catch (err) {
     next(err);
