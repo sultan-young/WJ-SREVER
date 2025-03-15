@@ -9,6 +9,7 @@ const mergeStrategy = {
     "children",
     "parentGroupId",
     "stock",
+    "_id",
   ], // 排除继承的字段
   forceOverride: ["stock"], // 即使子级为空也优先使用子级
   retainParentFields: [""], // 始终保留父级的特定字段
@@ -23,7 +24,11 @@ function deepMerge(parent, child, strategy) {
 
     // 当子级字段为空时继承父级
     const currentValue = result[key];
-    if (currentValue === null || currentValue === undefined || (Array.isArray(currentValue) && currentValue.length === 0)) {
+    if (
+      currentValue === null ||
+      currentValue === undefined ||
+      (Array.isArray(currentValue) && currentValue.length === 0)
+    ) {
       result[key] = parent[key];
     }
   }
@@ -52,8 +57,7 @@ function deepMerge(parent, child, strategy) {
   return result;
 }
 
-
-export async function enhanceProducts(products, model) {
+export async function enhanceChildProducts(products, model) {
   // 获取所有需要查询的父级ID
   const parentGroupIds = [
     ...new Set(
@@ -66,7 +70,8 @@ export async function enhanceProducts(products, model) {
   if (parentGroupIds.length === 0) return products;
 
   // 批量查询父级数据
-  const parentGroups = await model.find({
+  const parentGroups = await model
+    .find({
       _id: { $in: parentGroupIds },
     })
     .lean();
@@ -88,5 +93,49 @@ export async function enhanceProducts(products, model) {
 
     // 深度合并对象，空值继承逻辑
     return deepMerge(parent, productObj, mergeStrategy);
+  });
+}
+
+export async function enhanceGroupProducts(products, model) {
+  // 获取所有需要查询的父级ID
+  const childrenIds = [
+    ...new Set(
+      products.filter((p) => p.isGroup).map((p) => p.children.toString())
+    ),
+  ];
+  if (childrenIds.length === 0) return products;
+
+  // 批量查询子级数据
+  const childrenGroups = await model
+    .find({
+      _id: { $in: childrenIds },
+    })
+    .lean({ virtuals: true });
+
+  const transformChildrenGroups = childrenGroups.map((item) => {
+    let id = item._id.toString()
+    delete item._id;
+    delete item.__v;
+    return {
+      id,
+      ...item,
+    };
+  });
+
+  // 创建快速查找映射表
+  const childrenMap = transformChildrenGroups.reduce((acc, pg) => {
+    acc[pg.id] = pg;
+    return acc;
+  }, {});
+
+  // 合并数据逻辑
+  return products.map((product) => {
+    if (!product.isGroup) return product;
+    const children = product.children.map((id) => childrenMap[id]);
+    const productObj = product.toObject ? product.toObject() : product;
+    return {
+      ...productObj,
+      children,
+    };
   });
 }

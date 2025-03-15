@@ -143,6 +143,7 @@ const ProductSchema = new mongoose.Schema(
       },
     },
     toObject: {
+      virtuals: true, // 包含虚拟字段
       transform: (doc, ret) => {
         ret.id = ret._id.toString();
         delete ret._id;
@@ -181,9 +182,7 @@ ProductSchema.pre("save", async function (next) {
 
 ProductSchema.statics.createWithGroup = async function (groupData) {
   const { children = [] } = groupData;
-  groupData.children = []
-  const groupModel = await this.create(groupData)
-  // await this.create(newChildren);
+  const groupModel = await this.create({...groupData, children: []})
   const { sku, id } = groupModel;
   const newChildren = children.map((item) => ({
     sku: sku + "-" + item.variantSerial,
@@ -192,11 +191,10 @@ ProductSchema.statics.createWithGroup = async function (groupData) {
     parentGroupId: id,
   }));
 
-  await this.create(newChildren)
+  const childrenDoc = await this.create(newChildren)
+  groupModel.children = childrenDoc.map(doc => doc.id)
+  await groupModel.save()
 
-  return this;
-  
-  // console.log(groupModel, 111, this.find);
-
+  return groupModel;
 };
 export default mongoose.model("Product", ProductSchema);

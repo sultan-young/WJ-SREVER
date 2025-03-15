@@ -6,7 +6,7 @@ import axios from "axios";
 import { ROLE } from "../../constant/role.js";
 import Supplier from "../../models/Supplier.js";
 import { incrementStringNumber } from "../../utils/number.js";
-import { enhanceProducts } from "../../services/Product/productEnhancer.js";
+import { enhanceGroupProducts, enhanceChildProducts } from "../../services/Product/productEnhancer.js";
 
 export const createProduct = async (req, res, next) => {
   const { category, hasVariant, variantSerial, children, isGroup } = req.body;
@@ -38,13 +38,15 @@ export const createProduct = async (req, res, next) => {
       productDataPO.sku = `${category}-0000`;
       productDataPO.index = "0000";
     }
+    
+    let newProduct = [];
 
     if (isGroup || children?.length) {
-      await Product.createWithGroup(productDataPO);
+      newProduct = await Product.createWithGroup(productDataPO);
+    } else {
+      // TODO: 接口报错后仍创建了订单
+      newProduct = await Product.create(productDataPO);
     }
-    
-    // TODO: 接口报错后仍创建了订单
-    const newProduct = await Product.create(productDataPO);
 
     return res.success(newProduct);
   } catch (err) {
@@ -60,7 +62,7 @@ export const getProducts = async (req, res, next) => {
     const features = new APIFeatures(
       Product.find({
         ...queryParams,
-        isGroup: { $ne: true }
+        isGroup: { $ne: true },
       }).sort({ _id: -1 }),
       {
         pageNo,
@@ -78,7 +80,7 @@ export const getProducts = async (req, res, next) => {
     }
 
     const products = await features.query;
-    const enhancedProducts = await enhanceProducts(products, Product)
+    const enhancedProducts = await enhanceChildProducts(products, Product);
     return res.success(enhancedProducts);
   } catch (err) {
     next(err);
@@ -122,9 +124,10 @@ export const searchProducts = async (req, res, next) => {
         break;
     }
 
-    const enhancedProducts = await enhanceProducts(products, Product)
+    const enhancedChildProducts = await enhanceChildProducts(products, Product);
+    const enhancedGroupProducts = await enhanceGroupProducts(enhancedChildProducts, Product);
 
-    return res.success(enhancedProducts);
+    return res.success(enhancedGroupProducts);
   } catch (err) {
     next(err);
   }
