@@ -59,11 +59,20 @@ export const getProducts = async (req, res, next) => {
   try {
     const { queryParams = {}, pageNo, pageSize } = req.body;
     const { role, _id } = req.userInfo;
+
+    const query = {
+      $or: [
+        { isGroup: true },
+        {
+          $and: [
+            { isGroup: {$exists: false} },
+            { parentGroupId: {$exists: false} }
+          ]
+        }
+      ]
+    }
     const features = new APIFeatures(
-      Product.find({
-        ...queryParams,
-        isGroup: { $ne: true },
-      }).sort({ _id: -1 }),
+      Product.find(query).sort({ _id: -1 }),
       {
         pageNo,
         pageSize,
@@ -80,8 +89,10 @@ export const getProducts = async (req, res, next) => {
     }
 
     const products = await features.query;
-    const enhancedProducts = await enhanceChildProducts(products, Product);
-    return res.success(enhancedProducts);
+
+    const enhancedChildProducts = await enhanceChildProducts(products, Product);
+    const enhancedGroupProducts = await enhanceGroupProducts(enhancedChildProducts, Product);
+    return res.success(enhancedGroupProducts);
   } catch (err) {
     next(err);
   }
@@ -231,7 +242,7 @@ export const updateProduct = async (req, res, next) => {
     ...req.body,
   };
   // 分类无法更改
-  delete productDataPO.category;
+  delete productData.category;
   const { id } = productData;
   try {
     const product = await Product.findByIdAndUpdate(id, productData, {
@@ -255,6 +266,12 @@ export const deleteProduct = async (req, res, next) => {
     const product = await Product.findById(id);
     if (!product) {
       return next(new AppError("找不到该商品", 404));
+    }
+
+    if (product.isGroup) {
+      const result = await Product.deleteMany({
+        _id: { $in: product.children || []}
+      })
     }
 
     // 静默删除图片（不阻塞主流程）

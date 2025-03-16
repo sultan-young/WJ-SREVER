@@ -189,6 +189,7 @@ ProductSchema.statics.createWithGroup = async function (groupData) {
     stock: item.stock,
     images: item.images,
     parentGroupId: id,
+    variantSerial: item.variantSerial,
   }));
 
   const childrenDoc = await this.create(newChildren)

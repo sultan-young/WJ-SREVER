@@ -57,6 +57,7 @@ function deepMerge(parent, child, strategy) {
   return result;
 }
 
+// 根据子商品查询父商品
 export async function enhanceChildProducts(products, model) {
   // 获取所有需要查询的父级ID
   const parentGroupIds = [
@@ -96,13 +97,15 @@ export async function enhanceChildProducts(products, model) {
   });
 }
 
+// 根据父商品查询子商品
 export async function enhanceGroupProducts(products, model) {
-  // 获取所有需要查询的父级ID
+  // 获取所有需要查询的子级ID
   const childrenIds = [
     ...new Set(
-      products.filter((p) => p.isGroup).map((p) => p.children.toString())
+      ...products.filter((p) => p.isGroup).map((p) => p.children.map(item => item.toString()))
     ),
-  ];
+  ].filter(item => item);
+
   if (childrenIds.length === 0) return products;
 
   // 批量查询子级数据
@@ -131,7 +134,7 @@ export async function enhanceGroupProducts(products, model) {
   // 合并数据逻辑
   return products.map((product) => {
     if (!product.isGroup) return product;
-    const children = product.children.map((id) => childrenMap[id]);
+    const children = product.children.map((id) => childrenMap[id]).filter(item => item);
     const productObj = product.toObject ? product.toObject() : product;
     return {
       ...productObj,
