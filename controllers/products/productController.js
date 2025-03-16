@@ -6,7 +6,10 @@ import axios from "axios";
 import { ROLE } from "../../constant/role.js";
 import Supplier from "../../models/Supplier.js";
 import { incrementStringNumber } from "../../utils/number.js";
-import { enhanceGroupProducts, enhanceChildProducts } from "../../services/Product/productEnhancer.js";
+import {
+  enhanceGroupProducts,
+  enhanceChildProducts,
+} from "../../services/Product/productEnhancer.js";
 
 export const createProduct = async (req, res, next) => {
   const { category, hasVariant, variantSerial, children, isGroup } = req.body;
@@ -38,7 +41,7 @@ export const createProduct = async (req, res, next) => {
       productDataPO.sku = `${category}-0000`;
       productDataPO.index = "0000";
     }
-    
+
     let newProduct = [];
 
     if (isGroup || children?.length) {
@@ -57,26 +60,31 @@ export const createProduct = async (req, res, next) => {
 // 获取商品列表
 export const getProducts = async (req, res, next) => {
   try {
-    const { queryParams = {}, pageNo, pageSize } = req.body;
+    const {
+      queryParams = {
+        pageNo: 1,
+        pageSize: 10,
+      },
+    } = req.body;
     const { role, _id } = req.userInfo;
 
     const query = {
       $or: [
         { isGroup: true },
+        { isGroup: { $exists: false } }, // 历史数据没有isGroup, 它们都为普通的商品
         {
           $and: [
-            { isGroup: {$exists: false} },
-            { parentGroupId: {$exists: false} }
-          ]
-        }
-      ]
-    }
+            { isGroup: false }, // 子商品的isGroup为false，并且没有parentGroupId
+            { parentGroupId: { $exists: false } },
+          ],
+        },
+      ],
+    };
+
+    // TODO: 已知问题，没有防查询注入
     const features = new APIFeatures(
       Product.find(query).sort({ _id: -1 }),
-      {
-        pageNo,
-        pageSize,
-      }
+      queryParams
     )
       .filter()
       .sort()
@@ -84,15 +92,30 @@ export const getProducts = async (req, res, next) => {
       .paginate();
 
     // 供应商只能查看自己的商品
+    // TODO: 这里存在已知问题，后续修复
     if (role === ROLE.SUPPLIER) {
-      features.query = features.query.find({ _id });
+      features.query = features.query.and([{ supplierId: _id }]);
     }
 
-    const products = await features.query;
+    const [products, total] = await Promise.all([
+      features.query,
+      Product.countDocuments(features.baseQuery.getFilter())
+    ]);
 
     const enhancedChildProducts = await enhanceChildProducts(products, Product);
-    const enhancedGroupProducts = await enhanceGroupProducts(enhancedChildProducts, Product);
-    return res.success(enhancedGroupProducts);
+    const enhancedGroupProducts = await enhanceGroupProducts(
+      enhancedChildProducts,
+      Product
+    );
+
+    console.log(enhancedGroupProducts.length, products.length, 'enhancedGroupProducts')
+    
+    return res.success(enhancedGroupProducts, 200, {
+      pagination: {
+        ...queryParams,
+        total,
+      }
+    });
   } catch (err) {
     next(err);
   }
@@ -136,7 +159,10 @@ export const searchProducts = async (req, res, next) => {
     }
 
     const enhancedChildProducts = await enhanceChildProducts(products, Product);
-    const enhancedGroupProducts = await enhanceGroupProducts(enhancedChildProducts, Product);
+    const enhancedGroupProducts = await enhanceGroupProducts(
+      enhancedChildProducts,
+      Product
+    );
 
     return res.success(enhancedGroupProducts);
   } catch (err) {
@@ -270,8 +296,8 @@ export const deleteProduct = async (req, res, next) => {
 
     if (product.isGroup) {
       const result = await Product.deleteMany({
-        _id: { $in: product.children || []}
-      })
+        _id: { $in: product.children || [] },
+      });
     }
 
     // 静默删除图片（不阻塞主流程）

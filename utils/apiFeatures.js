@@ -1,5 +1,6 @@
 export default class APIFeatures {
     constructor(query, queryParams) {
+      this.baseQuery = query;
       this.query = query;
       this.queryParams = queryParams;
     }
