@@ -5,7 +5,6 @@ const mergeStrategy = {
     "createdAt",
     "updatedAt",
     "isGroup",
-    "groupCounter",
     "children",
     "parentGroupId",
     "stock",
@@ -97,16 +96,28 @@ export async function enhanceChildProducts(products, model) {
   });
 }
 
-// 根据父商品查询子商品
+// 组商品通过children中的子商品id查询子商品详细信息并进行替换
 export async function enhanceGroupProducts(products, model) {
   // 获取所有需要查询的子级ID
   const childrenIds = [
     ...new Set(
-      ...products.filter((p) => p.isGroup).map((p) => p.children.map(item => item.toString()))
+      products
+        .filter((product) => product.isGroup)
+        .map((product) =>
+          product.children.map((objectId) => objectId.toString())
+        )
+        .flat()
     ),
-  ].filter(item => item);
+  ].filter((item) => item);
 
-  if (childrenIds.length === 0) return products;
+
+  if (childrenIds.length === 0) {
+    products.forEach((item) => {
+      if (item.isGroup) {
+      }
+    });
+    return products;
+  }
 
   // 批量查询子级数据
   const childrenGroups = await model
@@ -116,7 +127,7 @@ export async function enhanceGroupProducts(products, model) {
     .lean({ virtuals: true });
 
   const transformChildrenGroups = childrenGroups.map((item) => {
-    let id = item._id.toString()
+    let id = item._id.toString();
     delete item._id;
     delete item.__v;
     return {
@@ -124,6 +135,7 @@ export async function enhanceGroupProducts(products, model) {
       ...item,
     };
   });
+
 
   // 创建快速查找映射表
   const childrenMap = transformChildrenGroups.reduce((acc, pg) => {
@@ -134,7 +146,10 @@ export async function enhanceGroupProducts(products, model) {
   // 合并数据逻辑
   return products.map((product) => {
     if (!product.isGroup) return product;
-    const children = product.children.map((id) => childrenMap[id]).filter(item => item);
+    const children = product.children
+      .map((id) => childrenMap[id])
+      .filter((item) => item);
+
     const productObj = product.toObject ? product.toObject() : product;
     return {
       ...productObj,
@@ -142,3 +157,4 @@ export async function enhanceGroupProducts(products, model) {
     };
   });
 }
+

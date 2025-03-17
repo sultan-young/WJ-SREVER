@@ -10,9 +10,11 @@ import {
   enhanceGroupProducts,
   enhanceChildProducts,
 } from "../../services/Product/productEnhancer.js";
+import { updateProductService } from "../../services/Product/updateProduct.js";
+import { getNextProductSkuIndex } from "../../services/Counter/getProductSku.js";
 
 export const createProduct = async (req, res, next) => {
-  const { category, hasVariant, variantSerial, children, isGroup } = req.body;
+  const { category, children, isGroup } = req.body;
 
   try {
     let productDataPO = {
@@ -26,21 +28,8 @@ export const createProduct = async (req, res, next) => {
     }
 
     // 找到同类产品的上个index
-    const lastProduct = await Product.findOne({
-      category,
-    })
-      .sort({ _id: -1 })
-      .select("index");
-
-    // sku生成规则，同类产品进行累加
-    if (lastProduct?.index) {
-      let newIndex = incrementStringNumber(lastProduct.index);
-      productDataPO.sku = `${category}-${newIndex}`;
-      productDataPO.index = newIndex;
-    } else {
-      productDataPO.sku = `${category}-0000`;
-      productDataPO.index = "0000";
-    }
+    const nextSkuIndex = await getNextProductSkuIndex()
+    productDataPO.sku = `${category}-${nextSkuIndex}`;
 
     let newProduct = [];
 
@@ -102,13 +91,12 @@ export const getProducts = async (req, res, next) => {
       Product.countDocuments(features.baseQuery.getFilter())
     ]);
 
+    // TODO: 这里似乎不应该对子进行增强，因为上边已经过滤掉子商品了。
     const enhancedChildProducts = await enhanceChildProducts(products, Product);
     const enhancedGroupProducts = await enhanceGroupProducts(
       enhancedChildProducts,
       Product
     );
-
-    console.log(enhancedGroupProducts.length, products.length, 'enhancedGroupProducts')
     
     return res.success(enhancedGroupProducts, 200, {
       pagination: {
@@ -136,12 +124,6 @@ export const searchProducts = async (req, res, next) => {
     pageSize,
   };
 
-  if (!content) {
-    req.body = {};
-    getProducts(req, res, next);
-    return;
-  }
-
   // 如果输入了 供应商名称， 应该使用供应商名称去模糊匹配出对应的供应商id，并使用供应商id进行精准匹配
   try {
     let products = [];
@@ -157,7 +139,7 @@ export const searchProducts = async (req, res, next) => {
         products = await searchWithType9(content, paginationParams);
         break;
     }
-
+    
     const enhancedChildProducts = await enhanceChildProducts(products, Product);
     const enhancedGroupProducts = await enhanceGroupProducts(
       enhancedChildProducts,
@@ -263,23 +245,14 @@ export const deleteProductImage = async (req, res, next) => {
   return res.success(result.data);
 };
 
+
 export const updateProduct = async (req, res, next) => {
-  const productData = {
-    ...req.body,
-  };
-  // 分类无法更改
-  delete productData.category;
-  const { id } = productData;
   try {
-    const product = await Product.findByIdAndUpdate(id, productData, {
-      new: true,
-      runValidators: true,
-    });
+    const product = await updateProductService(req.body);
 
     if (!product) {
       return next(new AppError("找不到该商品", 404));
     }
-
     return res.success(product);
   } catch (err) {
     next(err);

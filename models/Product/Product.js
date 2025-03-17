@@ -33,12 +33,6 @@ const ProductSchema = new mongoose.Schema(
       type: String,
       // required: [true, "所属货架不能为空"],
     },
-    // 商品当前的编号，用于生成sku
-    index: {
-      type: String,
-      required: [true, ""],
-      default: 0,
-    },
     suppliers: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -114,10 +108,6 @@ const ProductSchema = new mongoose.Schema(
       type: [Schema.Types.ObjectId],
       ref: "Product",
       default: [],
-    },
-    groupCounter: {
-      type: Number,
-      default: 1,
     },
     isGroup: {
       type: Boolean,
