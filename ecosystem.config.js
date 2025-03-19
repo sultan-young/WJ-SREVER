@@ -1,8 +1,8 @@
-export default {
+module.exports = {
   apps: [
     {
       name: "WJ-SERVER",
-      script: "server.mjs", // 确保指向 ESM 入口文件
+      script: " server.mjs", // 确保指向 ESM 入口文件
       interpreter: "node",
       instances: 2,
       autorestart: true,
