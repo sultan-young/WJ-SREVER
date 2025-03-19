@@ -1,7 +1,7 @@
 module.exports = {
     apps: [
       {
-        name: "wj-client",
+        name: "WJ-SERVER",
         script: "app.js",
         instances: 2,
         autorestart: true,
