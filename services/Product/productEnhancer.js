@@ -9,8 +9,9 @@ const mergeStrategy = {
     "parentGroupId",
     "stock",
     "_id",
+    "sku"
   ], // 排除继承的字段
-  forceOverride: ["stock"], // 即使子级为空也优先使用子级
+  forceOverride: ["stock", "sku"], // 即使子级为空也优先使用子级
   retainParentFields: [""], // 始终保留父级的特定字段
 };
 
@@ -28,6 +29,10 @@ function deepMerge(parent, child, strategy) {
       currentValue === undefined ||
       (Array.isArray(currentValue) && currentValue.length === 0)
     ) {
+      if ( key === 'children') {
+        console.log('key',key)
+
+      }
       result[key] = parent[key];
     }
   }

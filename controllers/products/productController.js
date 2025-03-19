@@ -28,7 +28,7 @@ export const createProduct = async (req, res, next) => {
     }
 
     // 找到同类产品的上个index
-    const nextSkuIndex = await getNextProductSkuIndex()
+    const nextSkuIndex = await getNextProductSkuIndex();
     productDataPO.sku = `${category}-${nextSkuIndex}`;
 
     let newProduct = [];
@@ -88,7 +88,7 @@ export const getProducts = async (req, res, next) => {
 
     const [products, total] = await Promise.all([
       features.query,
-      Product.countDocuments(features.baseQuery.getFilter())
+      Product.countDocuments(features.baseQuery.getFilter()),
     ]);
 
     // TODO: 这里似乎不应该对子进行增强，因为上边已经过滤掉子商品了。
@@ -97,12 +97,12 @@ export const getProducts = async (req, res, next) => {
       enhancedChildProducts,
       Product
     );
-    
+
     return res.success(enhancedGroupProducts, 200, {
       pagination: {
         ...queryParams,
         total,
-      }
+      },
     });
   } catch (err) {
     next(err);
@@ -118,7 +118,11 @@ export const searchProducts = async (req, res, next) => {
    * 9 代表供应商id搜索
    */
   const { queryParams = {}, pageNo, pageSize } = req.body;
-  const { type, content = "" } = queryParams;
+  let { type, content = "" } = queryParams;
+
+  // 进行转义，防止正则导致报错
+  content = content.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
   const paginationParams = {
     pageNo,
     pageSize,
@@ -139,7 +143,7 @@ export const searchProducts = async (req, res, next) => {
         products = await searchWithType9(content, paginationParams);
         break;
     }
-    
+
     const enhancedChildProducts = await enhanceChildProducts(products, Product);
     const enhancedGroupProducts = await enhanceGroupProducts(
       enhancedChildProducts,
@@ -244,7 +248,6 @@ export const deleteProductImage = async (req, res, next) => {
   const result = await deleteProductImageServer(req.body.ids);
   return res.success(result.data);
 };
-
 
 export const updateProduct = async (req, res, next) => {
   try {

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Product from "../../models/Product/Product.js";
+import { generateUpdate } from "./deepComparison.js";
 
 const ProtectedFields = [
   "children",
@@ -41,12 +42,19 @@ const removeProductEmptyValues = (obj, excludes = []) => {
 };
 
 export const updateProductService = async (productData) => {
+  let _productData = {
+    ...productData
+  }
 
   // 分类无法更改
-  delete productData.category;
-  console.log(0)
+  delete _productData.category;
 
-  const { id, isGroup, children: enhancedChildren = [] } = productData;
+  const {
+    id,
+    isGroup,
+    parentGroupId,
+    children: enhancedChildren = [],
+  } = _productData;
 
   // 如果有子商品，先更新子商品
   if (isGroup) {
@@ -57,13 +65,14 @@ export const updateProductService = async (productData) => {
 
     // 查找是否有需要删除的id
     const productModel = await Product.findById(id);
-    const rawChildrenIds = productModel.children.map(id => id.toString())
-    const currentChildrenIds = baseChildren.map((child) => child.id).filter(item => item);
+    const rawChildrenIds = productModel.children.map((id) => id.toString());
+    const currentChildrenIds = baseChildren
+      .map((child) => child.id)
+      .filter((item) => item);
     // 比对出那些子商品被删掉了
     const deletedChildrenIds = rawChildrenIds.filter(
       (item) => !currentChildrenIds.includes(item)
     );
-    console.log({rawChildrenIds, currentChildrenIds, deletedChildrenIds})
     // 分离更新，删除和新增操作
     // 如果这条数据数据中没有id，则为新增
     // 如果这条数据中有id，则为修改
@@ -88,7 +97,7 @@ export const updateProductService = async (productData) => {
           insertOne: {
             document: {
               ...baseChildProduct,
-              sku: productData.sku + "-" + baseChildProduct.variantSerial,
+              sku: _productData.sku + "-" + baseChildProduct.variantSerial,
               parentGroupId: productModel.id,
             },
           },
@@ -98,28 +107,36 @@ export const updateProductService = async (productData) => {
 
     // 找是否存在删除操作
     if (deletedChildrenIds.length) {
-        deletedChildrenIds.forEach((id) => {
-          operations.push({
-            deleteOne: {
-              filter: { _id: id },
-            },
-          });
+      deletedChildrenIds.forEach((id) => {
+        operations.push({
+          deleteOne: {
+            filter: { _id: id },
+          },
         });
-      }
+      });
+    }
 
     // 执行批量写入
     const result = await Product.bulkWrite(operations);
-    console.log(result, 'result')
+    console.log(result, "result");
 
     const insertedIds = Object.values(result.insertedIds) || [];
     const deletedIds = result.deletedCount > 0 ? deletedChildrenIds : [];
 
     // 给 商品组更新 children字段
-    productData.children = [...(productModel.children || []).filter(id => !deletedIds.includes(id)), ...insertedIds];
-    console.log(productData.children, deletedIds, insertedIds, 'productData.children ')
+    _productData.children = [
+      ...(productModel.children || []).filter((id) => !deletedIds.includes(id)),
+      ...insertedIds,
+    ];
   }
 
-  const product = await Product.findByIdAndUpdate(id, productData, {
+  // 在单独更新子商品时候，和其父商品进行数据比对。只将和父商品不一致的字段进行更新。这么做是为了保证当前端更新了某一个字段时候，将子商品所有字段都填充了父商品的数据，导致子商品的继承功能失效
+  if (!isGroup && parentGroupId) {
+    const productParentDoc = await Product.findById(parentGroupId);
+    _productData = generateUpdate(productParentDoc, _productData, ['sku', 'variantSerial', 'id', 'createdAt']);
+  }
+
+  const product = await Product.findByIdAndUpdate(id, _productData, {
     new: true,
     runValidators: true,
   });

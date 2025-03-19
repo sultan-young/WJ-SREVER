@@ -156,6 +156,7 @@ export const getOrderList = async (req, res, next) => {
 export const updateOrder = async (req, res, next) => {
   try {
     const { id, supplierId, shippingDate, orderList = [], note } = req.body;
+    console.log(shippingDate, 'shippingDate')
     const _SupplierOrder = await SupplierOrder.findByIdAndUpdate(id, {
       supplierId,
       shippingDate,
