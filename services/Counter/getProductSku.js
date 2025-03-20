@@ -2,9 +2,9 @@
 
 import Counter from "../../models/Counter.js";
 
-async function getNextProductSkuIndex() {
+async function getNextProductSkuIndex(category) {
   const result = await Counter.findOneAndUpdate(
-    { name: "product_sku" },
+    { name: `product_${category}_sku` },
     { $inc: { value: 1 } },
     { new: true, upsert: true }
   );

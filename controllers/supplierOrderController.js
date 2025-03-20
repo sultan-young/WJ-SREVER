@@ -23,83 +23,73 @@ export const createOrder = async (req, res, next) => {
 export const getOrderList = async (req, res, next) => {
   try {
     const { queryParams = {}, pageNo, pageSize } = req.body;
-    const {
-      supplierName,
-      supplierPhone,
-      orderId,
-      orderStatus = 1,
-    } = queryParams;
+    const { content, orderStatus } = queryParams;
 
-    const conditions = [];
-
-    // 订单id精确查询
-    if (orderId) {
-      if (mongoose.Types.ObjectId.isValid(orderId)) {
-        conditions.push({
-          _id: new mongoose.Types.ObjectId(orderId),
-        });
-      } else {
-        return res.status(400).json({ error: "无效的订单 ID" });
-      }
-    }
-
-    // 供应商手机号模糊查询
-    if (supplierPhone) {
-      const cleanedPhone = supplierPhone.replace(/\D/g, "");
-      const phoneConditions = [];
-      // 精确匹配条件
-      phoneConditions.push({ "supplier.phone": cleanedPhone });
-      // 尾号四位匹配条件（仅当清理后为4位时）
-      if (cleanedPhone.length === 4) {
-        phoneConditions.push({
-          "supplier.phone": {
-            $regex: new RegExp(`${cleanedPhone}$`, "i"),
-          },
-        });
-      }
-      // 组合逻辑：精确匹配或尾号匹配
-      conditions.push({ $or: phoneConditions });
-    }
-
-
-     // 处理供应商名称模糊查询
-    if (supplierName) {
-      conditions.push({
-        "supplier.name": { $regex: supplierName, $options: "i" },
-      });
-    }
-
-    // 构建聚合管道
     const pipeline = [];
 
-    // 1. 按订单状态筛选
-    pipeline.push({
-      $match: {
-        status: orderStatus,
-      },
-    });
-
-    // 关联供应商信息
-    pipeline.push({
-      $lookup: {
-        from: "suppliers",
-        localField: "supplierId",
-        foreignField: "_id",
-        as: "supplier",
-      },
-    });
-
-    // 展开供应商数组（因为每个订单只关联一个供应商）
-    pipeline.push({ $unwind: "$supplier" });
-
-    // 按查询条件筛选（如供应商名称、电话等）
-    if (conditions.length > 0) {
+    // 1. 按订单状态筛选（保留原有状态过滤逻辑）
+    if (orderStatus) {
       pipeline.push({
-        $match: { $or: conditions },
+        $match: { status: orderStatus }
       });
     }
 
-    // 处理订单商品列表：展开、关联商品、重组
+    // 2. 关联供应商信息
+    pipeline.push(
+      {
+        $lookup: {
+          from: "suppliers",
+          localField: "supplierId",
+          foreignField: "_id",
+          as: "supplier",
+        },
+      },
+      { $unwind: "$supplier" }
+    );
+
+    // 3. 构建模糊搜索条件
+    if (content) {
+      const searchConditions = [];
+
+      // 订单ID精确查询
+      if (mongoose.Types.ObjectId.isValid(content)) {
+        searchConditions.push({
+          _id: new mongoose.Types.ObjectId(content)
+        });
+      }
+
+      // 供应商名称模糊查询
+      searchConditions.push({
+        "supplier.name": { 
+          $regex: content.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+          $options: "i" 
+        }
+      });
+
+      // 手机号处理逻辑
+      const cleanedPhone = content.replace(/\D/g, "");
+      if (cleanedPhone) {
+        const phoneConditions = [];
+        // 精确匹配
+        phoneConditions.push({ "supplier.phone": cleanedPhone });
+        // 尾号匹配（当输入为4位时）
+        if (cleanedPhone.length === 4) {
+          phoneConditions.push({
+            "supplier.phone": { $regex: `${cleanedPhone}$` }
+          });
+        }
+        searchConditions.push({ $or: phoneConditions });
+      }
+
+      // 组合搜索条件（使用逻辑或）
+      pipeline.push({
+        $match: {
+          $or: searchConditions
+        }
+      });
+    }
+
+    // 4. 后续处理逻辑保持不变
     pipeline.push(
       { $unwind: "$orderList" }, // 展开 orderList 数组
       {
@@ -142,6 +132,11 @@ export const getOrderList = async (req, res, next) => {
         $project: {
           _id: 0, // 排除 MongoDB 默认的 _id
           "supplier._id": 0, // 排除供应商的 _id
+        },
+      },
+      {
+        $sort: {
+          shippingDate: 1, // 按订单时间升序排序
         },
       }
     );

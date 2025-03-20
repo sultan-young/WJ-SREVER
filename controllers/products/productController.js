@@ -5,7 +5,6 @@ import AppError from "../../utils/appError.js";
 import axios from "axios";
 import { ROLE } from "../../constant/role.js";
 import Supplier from "../../models/Supplier.js";
-import { incrementStringNumber } from "../../utils/number.js";
 import {
   enhanceGroupProducts,
   enhanceChildProducts,
@@ -28,7 +27,7 @@ export const createProduct = async (req, res, next) => {
     }
 
     // 找到同类产品的上个index
-    const nextSkuIndex = await getNextProductSkuIndex();
+    const nextSkuIndex = await getNextProductSkuIndex(category);
     productDataPO.sku = `${category}-${nextSkuIndex}`;
 
     let newProduct = [];
